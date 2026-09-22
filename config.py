@@ -17,6 +17,17 @@ HSV_UPPER = (35, 255, 255)
 MIN_BALL_RADIUS_PX = 4      # radius minimum blob (pixel) supaya noise kefilter
 MAX_BALL_RADIUS_PX = 60     # radius maksimum blob (pixel)
 
+# Kontrol tambahan untuk filter bentuk: circularity = 4*pi*area / perimeter^2
+# Nilai 1.0 berarti lingkaran sempurna. Turunkan kalau bola sering terpotong
+# oleh tepi frame atau tertutup parsial.
+MIN_CIRCULARITY = 0.65
+
+# === Optional AI detector ===
+# Jika True, tracker akan mencoba menggunakan detector AI (`ai_ball_detector.py`).
+# Jika torch/timbang model tidak tersedia, sistem akan fallback ke deteksi warna.
+USE_AI_DETECTOR = False
+AI_CONF_THRESHOLD = 0.35
+
 # === Kalibrasi bidang dinding ===
 # Diisi otomatis oleh calibrate.py. Bisa juga diisi manual (dalam meter).
 WALL_DISTANCE_M = None
@@ -45,11 +56,6 @@ MAX_TRACK_GAP_FRAMES = 5     # berapa frame boleh "hilang" sebelum track diangga
 MIN_TRACK_LENGTH = 3         # minimum jumlah titik sebelum track dianggap valid (kurangi false positive)
 
 HIT_COOLDOWN_S = 0.5         # jeda antar hit (detik) biar 1 lemparan tidak terhitung berkali-kali
-
-# === OSC output ===
-OSC_IP = "127.0.0.1"
-OSC_PORT = 7000
-OSC_ADDRESS_HIT = "/wall/hit"
 
 # === Debug ===
 SHOW_DEBUG_WINDOW = True

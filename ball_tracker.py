@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 
 import cv2
 import numpy as np
+import math
 import pyautogui
 import pyrealsense2 as rs
 
@@ -33,6 +34,10 @@ import config
 
 
 pyautogui.FAILSAFE = False
+
+
+# Optional AI detector (initialised in main if enabled)
+ai_detector = None
 
 
 @dataclass
@@ -140,12 +145,36 @@ def find_ball_in_frame(color_image: np.ndarray):
     if not contours:
         return None
 
-    largest = max(contours, key=cv2.contourArea)
-    (x, y), radius = cv2.minEnclosingCircle(largest)
+    # Pilih contour terbaik berdasarkan area & circularity
+    best = None
+    best_area = 0
+    for c in contours:
+        area = cv2.contourArea(c)
+        if area <= 0:
+            continue
 
-    if radius < config.MIN_BALL_RADIUS_PX or radius > config.MAX_BALL_RADIUS_PX:
+        perimeter = cv2.arcLength(c, True)
+        if perimeter <= 0:
+            continue
+
+        circularity = 4 * math.pi * (area / (perimeter * perimeter))
+
+        # radius perkiraan dari enclosing circle
+        (x, y), radius = cv2.minEnclosingCircle(c)
+        if radius < config.MIN_BALL_RADIUS_PX or radius > config.MAX_BALL_RADIUS_PX:
+            continue
+
+        if circularity < getattr(config, "MIN_CIRCULARITY", 0.6):
+            continue
+
+        if area > best_area:
+            best_area = area
+            best = ((x, y), radius)
+
+    if best is None:
         return None
 
+    (x, y), radius = best
     return int(x), int(y), int(radius)
 
 
@@ -188,6 +217,18 @@ def main():
 
     track = BallTrack()
 
+    # Initialize AI detector if enabled in config
+    global ai_detector
+    if getattr(config, "USE_AI_DETECTOR", False):
+        try:
+            from ai_ball_detector import AIBallDetector
+
+            ai_detector = AIBallDetector(conf_thres=getattr(config, "AI_CONF_THRESHOLD", 0.35))
+            print("AI detector enabled")
+        except Exception as e:
+            print(f"AI detector could not be initialised: {e}")
+            ai_detector = None
+
     try:
         while True:
             frames = pipeline.wait_for_frames()
@@ -200,7 +241,16 @@ def main():
             color_image = np.asanyarray(color_frame.get_data())
             now = time.time()
 
-            found = find_ball_in_frame(color_image)
+            # Choose detector: AI detector if available, otherwise color-based
+            found = None
+            if ai_detector is not None:
+                try:
+                    found = ai_detector.detect(color_image)
+                except Exception as e:
+                    print(f"AI detector error: {e}")
+                    found = None
+            else:
+                found = find_ball_in_frame(color_image)
             hit_triggered = False
 
             if found is not None:

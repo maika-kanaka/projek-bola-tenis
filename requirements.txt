@@ -1,10 +1,10 @@
+
 pyrealsense2; sys_platform != 'darwin'
 pyrealsense2-macosx; sys_platform == 'darwin'
 opencv-python
 numpy
 python-osc
 pyautogui
-opencv-python
-numpy
-python-osc
-pyautogui
+torch
+torchvision
+ultralytics
