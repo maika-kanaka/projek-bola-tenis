@@ -4,3 +4,4 @@ pyrealsense2-macosx==2.53.1
 opencv-python
 numpy
 python-osc
+pyautogui

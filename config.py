@@ -22,6 +22,15 @@ MAX_BALL_RADIUS_PX = 60     # radius maksimum blob (pixel)
 WALL_DISTANCE_M = None
 WALL_CALIBRATION_FILE = "wall_calibration.json"
 
+# ROI dinding (4 titik klik): [top-left, top-right, bottom-right, bottom-left]
+# dipakai untuk memetakan koordinat bola dari frame kamera ke koordinat monitor.
+WALL_ROI_POINTS = None
+
+# Jika True, mouse akan dipindahkan ke posisi hit yang dipetakan ke layar saat bola mengenai dinding.
+MOVE_MOUSE_ON_HIT = True
+MOUSE_SCREEN_WIDTH = 1920
+MOUSE_SCREEN_HEIGHT = 1080
+
 # Toleransi "hit": bola dianggap kena dinding kalau depth-nya berada
 # dalam WALL_DISTANCE_M +/- HIT_THRESHOLD_M
 HIT_THRESHOLD_M = 0.15

@@ -26,10 +26,14 @@ from dataclasses import dataclass, field
 
 import cv2
 import numpy as np
+import pyautogui
 import pyrealsense2 as rs
 from pythonosc.udp_client import SimpleUDPClient
 
 import config
+
+
+pyautogui.FAILSAFE = False
 
 
 @dataclass
@@ -88,6 +92,44 @@ def load_wall_distance() -> float:
     return float(data["wall_distance_m"])
 
 
+def load_wall_roi_points():
+    if config.WALL_ROI_POINTS is not None:
+        return np.array(config.WALL_ROI_POINTS, dtype=np.float32)
+    if not os.path.exists(config.WALL_CALIBRATION_FILE):
+        return None
+
+    with open(config.WALL_CALIBRATION_FILE) as f:
+        data = json.load(f)
+
+    points = data.get("wall_roi_points")
+    if not points or len(points) != 4:
+        return None
+    return np.array(points, dtype=np.float32)
+
+
+def map_hit_to_screen(x_px: int, y_px: int, roi_points: np.ndarray):
+    """Pemetaan titik dalam ROI dinding ke posisi layar (monitor)."""
+    if roi_points is None or len(roi_points) != 4:
+        return None
+
+    src = np.float32(roi_points)
+    dst = np.float32(
+        [
+            [0, 0],
+            [config.MOUSE_SCREEN_WIDTH, 0],
+            [config.MOUSE_SCREEN_WIDTH, config.MOUSE_SCREEN_HEIGHT],
+            [0, config.MOUSE_SCREEN_HEIGHT],
+        ]
+    )
+    transform = cv2.getPerspectiveTransform(src, dst)
+    point = np.float32([[[x_px, y_px]]])
+    mapped = cv2.perspectiveTransform(point, transform)[0][0]
+
+    x_screen = int(np.clip(mapped[0], 0, config.MOUSE_SCREEN_WIDTH - 1))
+    y_screen = int(np.clip(mapped[1], 0, config.MOUSE_SCREEN_HEIGHT - 1))
+    return x_screen, y_screen
+
+
 def find_ball_in_frame(color_image: np.ndarray):
     """Deteksi bola berdasarkan warna (HSV). Return (x_px, y_px, radius_px) atau None."""
     hsv = cv2.cvtColor(color_image, cv2.COLOR_BGR2HSV)
@@ -124,8 +166,13 @@ def get_depth_at(depth_frame, x_px: int, y_px: int, depth_scale: float, patch: i
 
 def main():
     wall_distance_m = load_wall_distance()
+    wall_roi_points = load_wall_roi_points()
     print(f"Jarak dinding (kalibrasi): {wall_distance_m:.3f} m")
     print(f"Threshold hit: +/-{config.HIT_THRESHOLD_M:.3f} m")
+    if wall_roi_points is not None:
+        print("ROI dinding dimuat untuk mapping mouse: 4 titik terdeteksi")
+    else:
+        print("ROI dinding belum dikalibrasi. Mouse tidak akan bergerak.")
 
     osc_client = SimpleUDPClient(config.OSC_IP, config.OSC_PORT)
     print(f"Mengirim OSC ke {config.OSC_IP}:{config.OSC_PORT} pada '{config.OSC_ADDRESS_HIT}'")
@@ -180,6 +227,14 @@ def main():
                         osc_client.send_message(config.OSC_ADDRESS_HIT, [x_norm, y_norm, speed])
                         track.last_hit_time = now
                         hit_triggered = True
+
+                        if config.MOVE_MOUSE_ON_HIT and wall_roi_points is not None:
+                            mouse_target = map_hit_to_screen(x_px, y_px, wall_roi_points)
+                            if mouse_target is not None:
+                                mouse_x, mouse_y = mouse_target
+                                pyautogui.moveTo(mouse_x, mouse_y, duration=0.02)
+                                print(f"Mouse -> ({mouse_x}, {mouse_y})")
+
                         print(f"HIT! x={x_norm:.2f} y={y_norm:.2f} speed~={speed:.2f} m/s")
 
                     if config.SHOW_DEBUG_WINDOW:
@@ -202,6 +257,15 @@ def main():
                         (pts[i - 1].x_px, pts[i - 1].y_px),
                         (pts[i].x_px, pts[i].y_px),
                         (255, 200, 0), 2,
+                    )
+
+                if wall_roi_points is not None:
+                    cv2.polylines(
+                        color_image,
+                        [np.int32(wall_roi_points)],
+                        isClosed=True,
+                        color=(255, 255, 0),
+                        thickness=2,
                     )
 
                 cv2.putText(
