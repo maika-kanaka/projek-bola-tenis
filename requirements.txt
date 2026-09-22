@@ -1,6 +1,9 @@
-#pyrealsense2-macosx==2.51.1
-#pyrealsense2-macosx==2.54.2
-pyrealsense2-macosx==2.53.1
+pyrealsense2; sys_platform != 'darwin'
+pyrealsense2-macosx; sys_platform == 'darwin'
+opencv-python
+numpy
+python-osc
+pyautogui
 opencv-python
 numpy
 python-osc

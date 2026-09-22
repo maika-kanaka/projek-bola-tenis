@@ -6,7 +6,7 @@ tracking & hit trigger" di roadmap).
 
 ## Struktur file
 - `config.py` — semua parameter yang perlu ditune (HSV, threshold, OSC, dll)
-- `calibrate.py` — ukur jarak dinding (jalankan sekali di awal, dinding kosong)
+- `calibrate.py` — ukur jarak dinding & ROI dinding (jalankan sekali di awal, dinding kosong)
 - `ball_tracker.py` — deteksi bola real-time, tracking, kirim event OSC saat hit
 - `tools/hsv_picker.py` — alat bantu cari warna HSV bola secara visual
 

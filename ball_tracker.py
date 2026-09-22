@@ -28,7 +28,6 @@ import cv2
 import numpy as np
 import pyautogui
 import pyrealsense2 as rs
-from pythonosc.udp_client import SimpleUDPClient
 
 import config
 
@@ -174,9 +173,6 @@ def main():
     else:
         print("ROI dinding belum dikalibrasi. Mouse tidak akan bergerak.")
 
-    osc_client = SimpleUDPClient(config.OSC_IP, config.OSC_PORT)
-    print(f"Mengirim OSC ke {config.OSC_IP}:{config.OSC_PORT} pada '{config.OSC_ADDRESS_HIT}'")
-
     pipeline = rs.pipeline()
     rs_config = rs.config()
     rs_config.enable_stream(
@@ -224,7 +220,6 @@ def main():
                         x_norm = x_px / config.FRAME_WIDTH
                         y_norm = y_px / config.FRAME_HEIGHT
 
-                        osc_client.send_message(config.OSC_ADDRESS_HIT, [x_norm, y_norm, speed])
                         track.last_hit_time = now
                         hit_triggered = True
 
