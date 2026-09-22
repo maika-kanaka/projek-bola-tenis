@@ -1,0 +1,1 @@
+python3 -c "import pyrealsense2 as rs; ctx = rs.context(); devices = ctx.query_devices(); print(f'Devices found: {devices.size()}')"
